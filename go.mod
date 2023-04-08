@@ -1,4 +1,4 @@
-module github.com/tirith-tech/go-hypercore-crypto
+module github.com/tirith-tech/hypercorecrypto
 
 go 1.20
 
