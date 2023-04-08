@@ -22,6 +22,12 @@ type KeyPair struct {
 	PrivateKey []byte
 }
 
+type TreeNode struct {
+	Index uint64
+	Hash  []byte
+	Size  uint64
+}
+
 func KeyPairFromSeed(seed []byte) KeyPair {
 	privateKey := ed25519.NewKeyFromSeed(seed)
 	publicKey := privateKey.Public().(ed25519.PublicKey)
@@ -53,29 +59,52 @@ func Data(data []byte) []byte {
 	return hash.Sum(nil)
 }
 
-func Parent(a, b []byte, aSize, bSize uint64) []byte {
-	if aSize > bSize {
+func Parent(a, b TreeNode) []byte {
+	if a.Index > b.Index {
 		a, b = b, a
-		aSize, bSize = bSize, aSize
 	}
+
+	out := make([]byte, 32)
+
+	parentType := []byte{ParentType}
+	combinedSize := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(combinedSize, a.Size+b.Size)
+
+	buffers := [][]byte{
+		parentType,
+		combinedSize[:n],
+		a.Hash,
+		b.Hash,
+	}
+
 	hash := blake2b.New256()
-	hash.Write([]byte{ParentType})
-	WriteUvarint(hash, aSize+bSize)
-	hash.Write(a)
-	hash.Write(b)
-	return hash.Sum(nil)
+	for _, buf := range buffers {
+		hash.Write(buf)
+	}
+	return hash.Sum(out[:0])
 }
 
-func Tree(roots [][]byte, out []byte) []byte {
+func Tree(roots []TreeNode, out []byte) []byte {
 	hash := blake2b.New256()
 	hash.Write([]byte{RootType})
-	for _, root := range roots {
-		hash.Write(root)
+
+	for _, r := range roots {
+		hash.Write(r.Hash)
+		writeUvarint(hash, r.Index)
+		writeUvarint(hash, r.Size)
 	}
+
 	if out == nil {
 		out = make([]byte, 32)
 	}
+
 	return hash.Sum(out[:0])
+}
+
+func writeUvarint(w io.Writer, x uint64) {
+	var buf [binary.MaxVarintLen64]byte
+	n := binary.PutUvarint(buf[:], x)
+	w.Write(buf[:n])
 }
 
 func RandomBytes(n int) []byte {
