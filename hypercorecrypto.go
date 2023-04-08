@@ -30,7 +30,7 @@ func KeyPairFromSeed(seed []byte) KeyPair {
 
 func NewKeyPair() KeyPair {
 	publicKey, privateKey, _ := ed25519.GenerateKey(nil)
-	return KeyPair{publicKey, privateKey}
+	return KeyPair{PublicKey: publicKey, PrivateKey: privateKey}
 }
 
 func ValidateKeyPair(keyPair KeyPair) bool {
