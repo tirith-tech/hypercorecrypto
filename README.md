@@ -1,1 +1,1 @@
-# go-hypercore-crypto
+# hypercorecrypto
